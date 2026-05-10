@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Produtividade Diária | TDS25</title>
+    
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/styles.css?v=3">
+</head>
+<body>
+
+    <!-- Background Layer -->
+    <div class="mesh-gradient-bg"></div>
+
+    <!-- Login Screen -->
+    <div id="loginScreen" class="login-screen">
+        <div class="login-card">
+            <header class="login-header">
+                <h1>DASH<span>BOARD</span></h1>
+                <p>Monitore a produtividade da equipe TDS25 em tempo real.</p>
+            </header>
+            
+            <div class="login-options">
+                <button class="btn-login" onclick="performLogin()">
+                    <img src="https://www.google.com/favicon.ico" alt="Google">
+                    Entrar com Google
+                </button>
+                <button class="btn-login" onclick="performLogin()">
+                    <span>S</span>
+                    Entrar com conta SENAI
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Dashboard Container -->
+    <div id="mainDashboard" class="dashboard-container" style="display: none;">
+        
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="logo">
+                <h2>TDS<span>25</span></h2>
+            </div>
+            
+            <nav class="nav-links main-nav">
+                <a href="#" class="active" onclick="showView('dashboard')">
+                    <i data-lucide="layout-dashboard"></i> Dashboard
+                </a>
+                <a href="#" onclick="showView('metas')">
+                    <i data-lucide="target"></i> Metas
+                </a>
+                <a href="#" onclick="showView('tasks')">
+                    <i data-lucide="check-square"></i> Tarefas
+                </a>
+                <a href="#" onclick="showView('relatorios')">
+                    <i data-lucide="file-text"></i> Relatórios
+                </a>
+                <a href="#">
+                    <i data-lucide="trending-up"></i> Atividades
+                </a>
+            </nav>
+
+            <nav class="nav-links sub-nav" style="margin-top: auto;">
+                <a href="#"><i data-lucide="history"></i> Histórico</a>
+                <a href="#"><i data-lucide="settings"></i> Configurações</a>
+                <a href="#" onclick="performLogout()"><i data-lucide="log-out"></i> Sair</a>
+            </nav>
+        </aside>
+
+        <!-- Dashboard View -->
+        <main id="dashboardView" class="main-content view-section">
+            <header class="top-header">
+                <div class="header-left">
+                    <div class="header-icon-box">
+                        <i data-lucide="trending-up"></i>
+                    </div>
+                    <div class="header-title">
+                        <h1>Produtividade Diária</h1>
+                    </div>
+                </div>
+                
+                <div class="header-right">
+                    <div class="user-profile">
+                        <img id="loggedUserAvatar" src="" alt="User" class="avatar-img">
+                        <div class="user-info">
+                            <span class="user-name" id="loggedUserName">Usuário</span>
+                            <span class="user-role">Participante</span>
+                        </div>
+                        <i data-lucide="chevron-down" style="width: 14px; color: var(--text-tertiary);"></i>
+                    </div>
+                </div>
+            </header>
+
+            <section class="summary-cards">
+                <div class="card card-white">
+                    <div class="card-header">
+                        <div class="icon-box pink"><i data-lucide="image"></i></div>
+                        <h3>IMAGENS ROTULADAS</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="value" id="totalImages">0</div>
+                    </div>
+                    <div class="card-footer">
+                        <div class="trend neutral">0% <span>vs ontem</span></div>
+                    </div>
+                </div>
+                
+                <div class="card card-white">
+                    <div class="card-header">
+                        <div class="icon-box blue"><i data-lucide="users"></i></div>
+                        <h3>USUÁRIOS ATIVOS</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="value" id="totalUsers">0</div>
+                    </div>
+                    <div class="card-footer">
+                        <div class="trend neutral">0% <span>vs ontem</span></div>
+                    </div>
+                </div>
+                
+                <div class="card card-white">
+                    <div class="card-header">
+                        <div class="icon-box green"><i data-lucide="target"></i></div>
+                        <h3>META INDIVIDUAL</h3>
+                    </div>
+                    <div class="card-body" style="display: flex; align-items: center; justify-content: space-between;">
+                        <div class="value" id="remainingGoal">800</div>
+                        <div class="circular-progress">
+                            <svg viewBox="0 0 36 36" class="circular-chart green">
+                              <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                              <path class="circle" id="metaDonutCircle" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                              <text x="18" y="20.35" class="percentage" id="metaDonutText">0%</text>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <span class="subtitle">Faltam para sua meta</span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="data-section">
+                <div class="chart-container card-white">
+                    <div class="section-header">
+                        <div class="header-left">
+                            <div class="icon-box-small purple"><i data-lucide="bar-chart-3"></i></div>
+                            <h2>Desempenho por Participante</h2>
+                        </div>
+                    </div>
+                    <div style="height: 300px; padding: 1.5rem;">
+                        <canvas id="productivityChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="leaderboard-container card-white">
+                    <div class="section-header">
+                        <div class="header-left">
+                            <div class="icon-box-small purple"><i data-lucide="award"></i></div>
+                            <h2>Top Participantes</h2>
+                        </div>
+                    </div>
+                    <div class="table-wrapper">
+                        <table id="leaderboardTable">
+                            <tbody id="leaderboardBody">
+                                <!-- JS Injection -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Metas View -->
+        <main id="metasView" class="main-content view-section" style="display: none;">
+            <header class="top-header">
+                <div class="header-left">
+                    <div class="header-icon-box purple">
+                        <i data-lucide="target"></i>
+                    </div>
+                    <div class="header-title">
+                        <h1>Planejamento de Metas</h1>
+                        <p class="subtitle">Acompanhe os objetivos semanais da turma.</p>
+                    </div>
+                </div>
+            </header>
+
+            <section class="metas-container">
+                <!-- Metas will be loaded from Firebase Firestore -->
+                <div class="loading-state" style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: var(--text-tertiary);">
+                    Carregando metas do Firebase...
+                </div>
+            </section>
+
+            <button class="btn-add-meta">
+                <i data-lucide="plus"></i> Adicionar Meta (Firestore)
+            </button>
+        </main>
+
+        <!-- Reports View -->
+        <main id="relatoriosView" class="main-content view-section" style="display: none;">
+            <header class="top-header">
+                <div class="header-left">
+                    <div class="header-icon-box blue">
+                        <i data-lucide="file-text"></i>
+                    </div>
+                    <div class="header-title">
+                        <h1>Relatórios Diários</h1>
+                        <p class="subtitle">Extraia estatísticas detalhadas por período.</p>
+                    </div>
+                </div>
+                <div class="header-right" style="display: flex; gap: 10px; align-items: center;">
+                    <input type="date" id="reportDate" class="date-input">
+                    <button class="btn-primary" onclick="generateDailyReport()">
+                        <i data-lucide="refresh-cw"></i> Gerar
+                    </button>
+                    <button class="btn-secondary" onclick="exportReportToCSV()">
+                        <i data-lucide="download"></i> Exportar CSV
+                    </button>
+                </div>
+            </header>
+
+            <section class="report-results card-white">
+                <div class="table-wrapper" style="padding-top: 1.5rem;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Colaborador</th>
+                                <th>Projeto</th>
+                                <th class="text-right">Fotos Rotuladas</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reportsTableBody">
+                            <tr>
+                                <td colspan="3" class="text-center" style="padding: 3rem; color: var(--text-tertiary);">
+                                    Selecione uma data e clique em "Gerar" para visualizar os dados.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+
+        <!-- Tasks View -->
+        <main id="tasksView" class="main-content view-section" style="display: none;">
+            <header class="top-header">
+                <div class="header-left">
+                    <div class="header-icon-box green">
+                        <i data-lucide="check-square"></i>
+                    </div>
+                    <div class="header-title">
+                        <h1>Gerenciamento de Tarefas</h1>
+                        <p class="subtitle">Atribua e acompanhe as atividades diárias da equipe.</p>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <button class="btn-primary" onclick="openAddTaskModal()">
+                        <i data-lucide="plus"></i> Nova Tarefa
+                    </button>
+                </div>
+            </header>
+
+            <section class="tasks-grid" id="tasksGrid">
+                <!-- Tasks injected here -->
+                <div class="loading-state" style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: var(--text-tertiary);">
+                    Carregando tarefas do Firestore...
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Add Task Modal -->
+    <div id="addTaskModal" class="meta-modal-overlay" style="display: none;" onclick="closeAddTaskModal()">
+        <div class="meta-modal" onclick="event.stopPropagation()">
+            <header class="modal-header">
+                <h2>Atribuir Tarefa</h2>
+                <span class="modal-close" onclick="closeAddTaskModal()">&times;</span>
+            </header>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Para quem?</label>
+                    <input type="text" id="taskAssignee" placeholder="E-mail do colaborador" class="date-input" style="width: 100%;">
+                </div>
+                <div class="form-group" style="margin-top: 1rem;">
+                    <label>O que deve ser feito?</label>
+                    <textarea id="taskDescription" placeholder="Descrição da tarefa..." class="date-input" style="width: 100%; height: 100px; padding: 1rem;"></textarea>
+                </div>
+            </div>
+            <footer class="modal-footer" style="padding: 1.5rem; display: flex; justify-content: flex-end;">
+                <button class="btn-primary" onclick="saveNewTask()">Salvar Tarefa</button>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Complete Task Modal (Proof) -->
+    <div id="completeTaskModal" class="meta-modal-overlay" style="display: none;" onclick="closeCompleteTaskModal()">
+        <div class="meta-modal" onclick="event.stopPropagation()">
+            <header class="modal-header">
+                <h2>Concluir Tarefa</h2>
+                <span class="modal-close" onclick="closeCompleteTaskModal()">&times;</span>
+            </header>
+            <div class="modal-body">
+                <p>Anexe uma foto como prova da conclusão da tarefa:</p>
+                <div class="upload-area" onclick="document.getElementById('taskProofFile').click()">
+                    <i data-lucide="image"></i>
+                    <span>Clique para selecionar a foto</span>
+                    <input type="file" id="taskProofFile" hidden accept="image/*" onchange="previewTaskImage(event)">
+                </div>
+                <div id="taskImagePreview" style="margin-top: 1rem; text-align: center; display: none;">
+                    <img id="previewImg" src="" style="max-width: 100%; border-radius: 12px; border: 1px solid var(--border-color);">
+                </div>
+            </div>
+            <footer class="modal-footer" style="padding: 1.5rem; display: flex; justify-content: flex-end;">
+                <button id="btnSubmitProof" class="btn-primary" onclick="submitTaskProof()">Enviar Prova e Concluir</button>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Meta Details Modal -->
+    <div id="metaModalOverlay" class="meta-modal-overlay" onclick="closeMetaModal()">
+        <div class="meta-modal" onclick="event.stopPropagation()">
+            <span class="modal-close" onclick="closeMetaModal()">&times;</span>
+            <header class="modal-header">
+                <h2 id="modalDay"></h2>
+                <p id="modalDate"></p>
+            </header>
+            <div class="modal-body">
+                <p id="modalDescription"></p>
+            </div>
+            <footer class="modal-footer-tags">
+                <div id="modalTags"></div>
+                <button class="btn-add-tag"><i data-lucide="plus"></i> Adicionar Tag</button>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>

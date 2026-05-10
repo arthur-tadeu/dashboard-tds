@@ -1,0 +1,4 @@
+# No external dependencies required for basic monitor.py (uses standard urllib)
+# If you plan to use pandas or requests in the future, add them here:
+# pandas
+# requests

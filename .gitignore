@@ -1,0 +1,14 @@
+# Firebase configuration (if you want to keep it private)
+# src/frontend/js/firebase-config.js
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv
+env/
+venv/
+
+# OS files
+.DS_Store
+Thumbs.db
