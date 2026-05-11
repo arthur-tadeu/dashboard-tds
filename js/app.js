@@ -31,6 +31,7 @@ const App = {
                 await this.loadSettings();
                 await this.loadMetas();
                 await this.seedFixedMetas();
+                UIController.renderGrupos();
                 if (window.loadTasks) await window.loadTasks();
                 lucide.createIcons();
             } else {

@@ -60,6 +60,68 @@ export const UIController = {
         }
     },
 
+    renderGrupos() {
+        const groups = [
+            {
+                name: "Grupo 1 — Fotos Excelentes",
+                members: ["Nahyron", "Pereira", "Gomez", "Gideão"],
+                meta: "2500 fotos",
+                instructions: ["Fotos extremamente nítidas", "Boa iluminação", "Óculos totalmente visível", "Fundo relativamente limpo", "Pouca oclusão"],
+                distances: ["20cm", "40cm", "70cm", "1m", "2m", "5m"]
+            },
+            {
+                name: "Grupo 2 — Fotos Boas",
+                members: ["Victor", "Pietra", "Beatriz", "João Black"],
+                meta: "3500 fotos",
+                instructions: ["Tiradas dentro da fábrica", "Evitar imagens borradas", "Ambiente realista", "Pessoas andando", "Fundo poluído", "Pelo menos 300 fotos em sala"],
+                distances: ["1m", "2m", "3m", "5m", "7m"]
+            },
+            {
+                name: "Grupo 3 — Fotos Difíceis",
+                members: ["Arthur", "Josué", "Ian"],
+                meta: "2500 fotos",
+                instructions: ["Oclusão parcial", "Movimento leve", "Ambiente complexo", "Fundo bagunçado", "Iluminação moderadamente ruim"],
+                distances: ["3m", "5m", "7m", "10m"]
+            },
+            {
+                name: "Grupo 4 — Reforço e Qualidade",
+                members: ["Kauan", "Rua Torres", "Bonfin", "Laís", "Guedes", "Matheus", "Rafael"],
+                meta: "2000 fotos",
+                instructions: ["Cenários variados", "Reforço de classes fracas", "Pessoas em grupo", "Ambientes internos e externos", "Revisão de qualidade"],
+                distances: ["1m", "3m", "5m", "7m"]
+            }
+        ];
+
+        const grid = document.getElementById('gruposGrid');
+        if (!grid) return;
+
+        grid.innerHTML = groups.map(group => `
+            <div class="group-card">
+                <div class="group-header">
+                    <span class="group-name">${group.name}</span>
+                    <span class="group-meta-badge">${group.meta}</span>
+                </div>
+                <div class="group-members">
+                    ${group.members.map(m => `<span class="member-tag">${m}</span>`).join('')}
+                </div>
+                <div class="group-instructions">
+                    <div class="instruction-section">
+                        <span class="instruction-title">Requisitos</span>
+                        <ul class="instruction-list">
+                            ${group.instructions.map(inst => `<li>${inst}</li>`).join('')}
+                        </ul>
+                    </div>
+                    <div class="instruction-section">
+                        <span class="instruction-title">Distâncias</span>
+                        <div class="distances-row">
+                            ${group.distances.map(d => `<span class="distance-tag">${d}</span>`).join('')}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    },
+
     updateSummary(data, sortedUsers) {
         const totalImages = data.data.reduce((acc, curr) => acc + (curr.imagesLabeled || 0), 0);
         const totalUsers = data.labelers ? data.labelers.length : sortedUsers.length;
