@@ -42,42 +42,51 @@ const App = {
     },
 
     async loadSettings() {
-        const goal = await SettingsService.getDailyGoal();
-        UIController.setDailyGoal(goal);
+        try {
+            const goal = await SettingsService.getDailyGoal();
+            UIController.setDailyGoal(goal);
+        } catch (error) {
+            console.warn('Erro ao carregar configurações globais:', error);
+            UIController.setDailyGoal(800); // Valor padrão de fallback
+        }
     },
 
     async seedFixedMetas() {
-        // Only seed if no metas exist for 11/05
-        const has1105Metas = AppState.metas.some(m => m.title && m.title.includes('11/05'));
-        if (!has1105Metas) {
-            const fixedMetas = [
-                {
-                    title: "Meta 11/05 - Módulo 1",
-                    description: "Ir até o módulo 1 com alunos e gravar vídeos com ângulos bons até a distância que a pixelização fique muito forte.",
-                    status: "Em Aberto",
-                    category: "Dataset",
-                    deadline: "2026-05-11"
-                },
-                {
-                    title: "Labelização",
-                    description: "Começar processo de labelização.",
-                    status: "Em Aberto",
-                    category: "AI Training",
-                    deadline: "2026-05-11"
-                },
-                {
-                    title: "Produtividade Individual",
-                    description: "Cada um fazer no mínimo 400 fotos nesse dia.",
-                    status: "Em Aberto",
-                    category: "Productivity",
-                    deadline: "2026-05-11"
+        try {
+            // Only seed if no metas exist for 11/05
+            const has1105Metas = AppState.metas.some(m => m.title && m.title.includes('11/05'));
+            if (!has1105Metas) {
+                const fixedMetas = [
+                    {
+                        title: "Meta 11/05 - Módulo 1",
+                        description: "Ir até o módulo 1 com alunos e gravar vídeos com ângulos bons até a distância que a pixelização fique muito forte.",
+                        status: "Em Aberto",
+                        category: "Dataset",
+                        deadline: "2026-05-11"
+                    },
+                    {
+                        title: "Labelização",
+                        description: "Começar processo de labelização.",
+                        status: "Em Aberto",
+                        category: "AI Training",
+                        deadline: "2026-05-11"
+                    },
+                    {
+                        title: "Produtividade Individual",
+                        description: "Cada um fazer no mínimo 400 fotos nesse dia.",
+                        status: "Em Aberto",
+                        category: "Productivity",
+                        deadline: "2026-05-11"
+                    }
+                ];
+                
+                for (const meta of fixedMetas) {
+                    await MetasService.add(meta);
                 }
-            ];
-            
-            for (const meta of fixedMetas) {
-                await MetasService.add(meta);
+                await this.loadMetas(); // Refresh
             }
-            await this.loadMetas(); // Refresh
+        } catch (e) {
+            console.warn("Não foi possível salvar as metas fixas iniciais:", e);
         }
     },
 
@@ -86,7 +95,8 @@ const App = {
             AppState.metas = await MetasService.getAll();
             UIController.renderMetas(AppState.metas);
         } catch (error) {
-            console.error('Erro ao carregar metas:', error);
+            console.warn('Firestore indisponível ou erro ao carregar metas:', error);
+            UIController.renderMetas([]); // Render empty or show message
         }
     },
 
@@ -111,8 +121,7 @@ const App = {
     },
 
     setupAuth() {
-        // Mocking auth for local development
-        console.log("Auth is in Mock Mode");
+        // Auth is handled via AuthService.onAuthChange in init()
     },
 
     async handleLoginSuccess(user) {
@@ -185,7 +194,7 @@ window.performLogin = async () => {
     try {
         await AuthService.login();
     } catch (error) {
-        alert("Erro ao entrar com Google: " + error.message);
+        alert(`Erro ao entrar com Google: [${error.code}] ${error.message}`);
     }
 };
 window.performLogout = async () => {
