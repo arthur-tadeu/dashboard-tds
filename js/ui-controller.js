@@ -39,7 +39,7 @@ export const UIController = {
         
         const target = document.getElementById(`${viewId}View`);
         if (target) {
-            const flexViews = ['dashboard', 'acompanhamento', 'metas', 'tasks', 'relatorios'];
+            const flexViews = ['dashboard', 'acompanhamento', 'metas', 'tasks', 'relatorios', 'grupos'];
             target.style.display = 'flex';
         }
 
@@ -63,29 +63,29 @@ export const UIController = {
     renderGrupos() {
         const groups = [
             {
-                name: "Grupo 1 — Fotos Excelentes",
-                members: ["Nahyron", "Pereira", "Gomez", "Gideão"],
+                name: "Grupo 1",
+                members: ["Nahyron", "Ruan Gomes", "Gideão", "Pereira"],
                 meta: "2500 fotos",
                 instructions: ["Fotos extremamente nítidas", "Boa iluminação", "Óculos totalmente visível", "Fundo relativamente limpo", "Pouca oclusão"],
                 distances: ["20cm", "40cm", "70cm", "1m", "2m", "5m"]
             },
             {
-                name: "Grupo 2 — Fotos Boas",
-                members: ["Victor", "Pietra", "Beatriz", "João Black"],
+                name: "Grupo 2",
+                members: ["Vitor", "Beatriz", "Pietra", "João Pedro"],
                 meta: "3500 fotos",
                 instructions: ["Tiradas dentro da fábrica", "Evitar imagens borradas", "Ambiente realista", "Pessoas andando", "Fundo poluído", "Pelo menos 300 fotos em sala"],
                 distances: ["1m", "2m", "3m", "5m", "7m"]
             },
             {
-                name: "Grupo 3 — Fotos Difíceis",
-                members: ["Arthur", "Josué", "Ian"],
+                name: "Grupo 3",
+                members: ["Arthur", "Ian", "Josué"],
                 meta: "2500 fotos",
                 instructions: ["Oclusão parcial", "Movimento leve", "Ambiente complexo", "Fundo bagunçado", "Iluminação moderadamente ruim"],
                 distances: ["3m", "5m", "7m", "10m"]
             },
             {
-                name: "Grupo 4 — Reforço e Qualidade",
-                members: ["Kauan", "Rua Torres", "Bonfin", "Laís", "Guedes", "Matheus", "Rafael"],
+                name: "Grupo 4",
+                members: ["Kauan", "Ruan Torres", "Bonfin", "Laís", "Guedes", "Matheus", "Rafael"],
                 meta: "2000 fotos",
                 instructions: ["Cenários variados", "Reforço de classes fracas", "Pessoas em grupo", "Ambientes internos e externos", "Revisão de qualidade"],
                 distances: ["1m", "3m", "5m", "7m"]
