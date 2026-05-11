@@ -2,12 +2,18 @@
  * UI Controller - Handles all DOM manipulations and Chart.js
  */
 
-const UI_CONFIG = {
+let UI_CONFIG = {
     DAILY_GOAL: 800,
     ANIMATION_DURATION: 1000
 };
 
 export const UIController = {
+    setDailyGoal(goal) {
+        UI_CONFIG.DAILY_GOAL = goal;
+        // Update any UI that depends on it
+        const remainingEl = document.getElementById('remainingGoal');
+        if (remainingEl) remainingEl.textContent = goal;
+    },
     elements: {
         dashboardView: document.getElementById('dashboardView'),
         metasView: document.getElementById('metasView'),
@@ -20,7 +26,7 @@ export const UIController = {
         metaDonutText: document.getElementById('metaDonutText'),
         metaDonutCircle: document.getElementById('metaDonutCircle'),
         loggedUserAvatar: document.getElementById('loggedUserAvatar'),
-        metasContainer: document.querySelector('.metas-container'),
+        metasContainer: document.getElementById('metasContainer'),
         reportsTableBody: document.getElementById('reportsTableBody'),
         reportDateInput: document.getElementById('reportDate'),
         tasksGrid: document.getElementById('tasksGrid')
@@ -33,7 +39,8 @@ export const UIController = {
         
         const target = document.getElementById(`${viewId}View`);
         if (target) {
-            target.style.display = viewId === 'dashboard' ? 'flex' : 'block';
+            const flexViews = ['dashboard', 'acompanhamento', 'metas', 'tasks', 'relatorios'];
+            target.style.display = 'flex';
         }
 
         document.querySelectorAll('.nav-links a').forEach(link => {
@@ -41,6 +48,16 @@ export const UIController = {
         });
 
         lucide.createIcons();
+    },
+
+    updateUserUI(user) {
+        if (this.elements.loggedUserAvatar) {
+            this.elements.loggedUserAvatar.src = user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || 'U')}&background=ff6b6b&color=fff`;
+        }
+        const userNameEl = document.getElementById('loggedUserName');
+        if (userNameEl) {
+            userNameEl.textContent = user.displayName || user.email;
+        }
     },
 
     updateSummary(data, sortedUsers) {
@@ -172,17 +189,42 @@ export const UIController = {
     renderMetas(metas) {
         if (!this.elements.metasContainer) return;
         
-        this.elements.metasContainer.innerHTML = metas.map(meta => `
-            <div class="meta-card card-white" onclick="openMetaModal('${meta.day}', '${meta.date}', '${meta.description}', ${JSON.stringify(meta.tags).replace(/"/g, '&quot;')})">
-                <div class="meta-date">
-                    <span class="day">${meta.day.split('-')[0]}</span>
-                    <span class="full-date">${meta.date}</span>
+        if (metas.length === 0) {
+            this.elements.metasContainer.innerHTML = `
+                <div class="loading-state" style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: var(--text-tertiary);">
+                    Nenhuma meta cadastrada. Clique no botão abaixo para adicionar.
                 </div>
-                <div class="meta-content">
-                    <p>${meta.description.substring(0, 60)}${meta.description.length > 60 ? '...' : ''}</p>
+            `;
+            return;
+        }
+
+        this.elements.metasContainer.innerHTML = metas.map(meta => `
+            <div class="meta-card card-white">
+                <div class="meta-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+                    <div class="header-left">
+                        <h3 style="font-size: 1.1rem; color: var(--text-primary); font-weight: 800;">${meta.title}</h3>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn-icon-small" onclick="openMetaModal('${meta.id}')"><i data-lucide="edit-3"></i></button>
+                        <button class="btn-icon-small delete" onclick="deleteMeta('${meta.id}')" style="color: #ef4444;"><i data-lucide="trash-2"></i></button>
+                    </div>
+                </div>
+                <div class="meta-info" style="margin-bottom: 1.5rem;">
+                    <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.5; margin-bottom: 0.8rem;">${meta.description || 'Sem descrição'}</p>
+                    ${meta.user ? `<span class="badge" style="display: inline-block; background: #e0e7ff; color: #4338ca; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 700;">${meta.user}</span>` : ''}
+                </div>
+                <div class="meta-footer" style="margin-top: auto;">
+                    <div class="progress-info" style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 800; margin-bottom: 0.6rem; color: var(--text-primary);">
+                        <span>Objetivo</span>
+                        <span>${meta.target || 0} fotos</span>
+                    </div>
+                    <div class="progress-bar" style="height: 8px; background: rgba(0,0,0,0.05); border-radius: 4px; overflow: hidden;">
+                        <div class="progress-fill" style="width: 0%; height: 100%; background: linear-gradient(90deg, #a855f7, #f9a8d4); border-radius: 4px;"></div>
+                    </div>
                 </div>
             </div>
         `).join('');
+        lucide.createIcons();
     },
 
     renderReportsTable(data) {
@@ -206,6 +248,97 @@ export const UIController = {
                 <td class="text-right">${item.count.toLocaleString()} fotos</td>
             </tr>
         `).join('');
+    },
+
+    renderAcompanhamento(users) {
+        const grid = document.getElementById('acompanhamentoGrid');
+        if (!grid) return;
+
+        const DAILY_GOAL = UI_CONFIG.DAILY_GOAL;
+        const today = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+        const label = document.getElementById('acompDataLabel');
+        if (label) label.textContent = `${today} — ${users.length} colaborador${users.length !== 1 ? 'es' : ''} ativo${users.length !== 1 ? 's' : ''}`;
+
+        if (!users || users.length === 0) {
+            grid.innerHTML = `
+                <div class="acomp-empty">
+                    <i data-lucide="users"></i>
+                    <h3>Nenhum dado encontrado</h3>
+                    <p>Ainda não há registros de produtividade para hoje no Roboflow.</p>
+                </div>
+            `;
+            lucide.createIcons();
+            return;
+        }
+
+        const medals = { 0: '🥇', 1: '🥈', 2: '🥉' };
+        const rankClass = { 0: 'top-1', 1: 'top-2', 2: 'top-3' };
+
+        grid.innerHTML = users.map((user, index) => {
+            const percent = Math.min(100, Math.round((user.labels / DAILY_GOAL) * 100));
+            const hash = CryptoJS.MD5(user.email.toLowerCase().trim()).toString();
+            const avatarUrl = `https://www.gravatar.com/avatar/${hash}?d=identicon&s=144`;
+            const remaining = Math.max(0, DAILY_GOAL - user.labels);
+
+            // Status
+            let statusLabel, statusClass, barColor;
+            if (percent >= 100) {
+                statusLabel = '✅ Meta atingida!';
+                statusClass = 'status-done';
+                barColor = 'linear-gradient(90deg, #10b981, #a855f7)';
+            } else if (percent >= 50) {
+                statusLabel = '🔶 Na metade';
+                statusClass = 'status-halfway';
+                barColor = 'linear-gradient(90deg, #f59e0b, #ef4444)';
+            } else if (percent >= 20) {
+                statusLabel = '🟡 Em progresso';
+                statusClass = 'status-halfway';
+                barColor = 'linear-gradient(90deg, #fb923c, #f59e0b)';
+            } else {
+                statusLabel = '🔴 Atrás da meta';
+                statusClass = 'status-behind';
+                barColor = '#ef4444';
+            }
+
+            const rank = medals[index] ? `<span class="acomp-rank-badge">${medals[index]}</span>` :
+                `<span class="acomp-rank-badge" style="font-size:0.65rem">${index + 1}°</span>`;
+
+            return `
+                <div class="acomp-person-card ${rankClass[index] || ''}">
+                    ${rank}
+                    <img src="${avatarUrl}" class="acomp-avatar" alt="${user.name}" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=a855f7&color=fff&size=144'">
+                    <div class="acomp-name">${user.name}</div>
+                    <div class="acomp-email">${user.email}</div>
+
+                    <div class="acomp-stats">
+                        <div class="acomp-stat">
+                            <span class="acomp-stat-value">${user.labels.toLocaleString()}</span>
+                            <span class="acomp-stat-label">Fotos</span>
+                        </div>
+                        <div class="acomp-stat" style="border-left:1.5px solid var(--border-color); padding-left:1.5rem;">
+                            <span class="acomp-stat-value">${remaining.toLocaleString()}</span>
+                            <span class="acomp-stat-label">Restantes</span>
+                        </div>
+                        <div class="acomp-stat" style="border-left:1.5px solid var(--border-color); padding-left:1.5rem;">
+                            <span class="acomp-stat-value">${percent}%</span>
+                            <span class="acomp-stat-label">Completo</span>
+                        </div>
+                    </div>
+
+                    <div class="acomp-progress-wrap">
+                        <div class="acomp-progress-header">
+                            <span>Progresso diário</span>
+                            <span>${user.labels.toLocaleString()} / ${DAILY_GOAL.toLocaleString()}</span>
+                        </div>
+                        <div class="acomp-progress-track">
+                            <div class="acomp-progress-bar" style="width:${percent}%; background: ${barColor};"></div>
+                        </div>
+                    </div>
+
+                    <span class="acomp-status-badge ${statusClass}">${statusLabel}</span>
+                </div>
+            `;
+        }).join('');
     },
 
     renderTasks(tasks, currentUserEmail) {

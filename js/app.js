@@ -4,19 +4,104 @@ import { UIController } from './ui-controller.js';
 import { MetasService } from './metas-service.js';
 import { ReportsService } from './reports-service.js';
 import { TasksService } from './tasks-service.js';
+import { SettingsService } from './settings-service.js';
 
 const AppState = {
     currentDate: new Date().toISOString().split('T')[0],
     user: null,
     lastReportData: null,
-    currentTaskId: null
+    currentTaskId: null,
+    metas: [],
+    editingMetaId: null
 };
 
 const App = {
     async init() {
         this.setupAuth();
+        this.setupTheme();
         this.setDefaultDates();
-        lucide.createIcons();
+        // Load data only after auth is confirmed
+        AuthService.onAuthChange(async (user) => {
+            if (user) {
+                AppState.user = user;
+                UIController.elements.loginScreen.style.display = 'none';
+                UIController.elements.mainDashboard.style.display = 'flex';
+                UIController.updateUserUI(user);
+                
+                await this.loadSettings();
+                await this.loadMetas();
+                await this.seedFixedMetas();
+                if (window.loadTasks) await window.loadTasks();
+                lucide.createIcons();
+            } else {
+                AppState.user = null;
+                UIController.elements.loginScreen.style.display = 'flex';
+                UIController.elements.mainDashboard.style.display = 'none';
+            }
+        });
+    },
+
+    async loadSettings() {
+        const goal = await SettingsService.getDailyGoal();
+        UIController.setDailyGoal(goal);
+    },
+
+    async seedFixedMetas() {
+        // Only seed if no metas exist for 11/05
+        const has1105Metas = AppState.metas.some(m => m.title && m.title.includes('11/05'));
+        if (!has1105Metas) {
+            const fixedMetas = [
+                {
+                    title: "Meta 11/05 - Módulo 1",
+                    description: "Ir até o módulo 1 com alunos e gravar vídeos com ângulos bons até a distância que a pixelização fique muito forte.",
+                    status: "Em Aberto",
+                    category: "Dataset",
+                    deadline: "2026-05-11"
+                },
+                {
+                    title: "Labelização",
+                    description: "Começar processo de labelização.",
+                    status: "Em Aberto",
+                    category: "AI Training",
+                    deadline: "2026-05-11"
+                },
+                {
+                    title: "Produtividade Individual",
+                    description: "Cada um fazer no mínimo 400 fotos nesse dia.",
+                    status: "Em Aberto",
+                    category: "Productivity",
+                    deadline: "2026-05-11"
+                }
+            ];
+            
+            for (const meta of fixedMetas) {
+                await MetasService.add(meta);
+            }
+            await this.loadMetas(); // Refresh
+        }
+    },
+
+    async loadMetas() {
+        try {
+            AppState.metas = await MetasService.getAll();
+            UIController.renderMetas(AppState.metas);
+        } catch (error) {
+            console.error('Erro ao carregar metas:', error);
+        }
+    },
+
+    setupTheme() {
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark') {
+            document.body.classList.add('dark-mode');
+            setTimeout(() => {
+                const icon = document.getElementById('themeIcon');
+                if (icon) {
+                    icon.setAttribute('data-lucide', 'moon');
+                    lucide.createIcons();
+                }
+            }, 100);
+        }
     },
 
     setDefaultDates() {
@@ -26,19 +111,12 @@ const App = {
     },
 
     setupAuth() {
-        AuthService.onAuthChange(async (user) => {
-            if (user) {
-                AppState.user = user;
-                this.handleLoginSuccess(user);
-            } else {
-                AppState.user = null;
-                UIController.elements.loginScreen.style.display = 'flex';
-                UIController.elements.mainDashboard.style.display = 'none';
-            }
-        });
+        // Mocking auth for local development
+        console.log("Auth is in Mock Mode");
     },
 
     async handleLoginSuccess(user) {
+        AppState.user = user;
         UIController.elements.loginScreen.style.opacity = '0';
         setTimeout(() => {
             UIController.elements.loginScreen.style.display = 'none';
@@ -98,12 +176,133 @@ const App = {
         UIController.updateSummary(data, sortedUsers);
         UIController.renderLeaderboard(sortedUsers);
         UIController.renderChart(sortedUsers);
+        UIController.renderAcompanhamento(sortedUsers);
     }
 };
 
 // Global hooks for HTML onclicks
-window.performLogin = () => AuthService.login();
-window.performLogout = () => AuthService.logout();
+window.performLogin = async () => {
+    try {
+        await AuthService.login();
+    } catch (error) {
+        alert("Erro ao entrar com Google: " + error.message);
+    }
+};
+window.performLogout = async () => {
+    try {
+        await AuthService.logout();
+    } catch (error) {
+        console.error("Erro ao sair:", error);
+    }
+};
+window.toggleTheme = () => {
+    const isDark = document.body.classList.toggle('dark-mode');
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    
+    const icon = document.getElementById('themeIcon');
+    if (icon) {
+        icon.setAttribute('data-lucide', isDark ? 'moon' : 'sun');
+        lucide.createIcons();
+    }
+};
+
+window.App = {
+    ...App,
+    async promptChangeGoal() {
+        const password = prompt("Digite a senha de administrador para mudar a meta:");
+        if (password === 'admin123@') {
+            const newGoal = prompt("Digite a nova meta diária (ex: 400):");
+            if (newGoal && !isNaN(newGoal)) {
+                try {
+                    await SettingsService.updateDailyGoal(parseInt(newGoal));
+                    UIController.setDailyGoal(parseInt(newGoal));
+                    alert("Meta diária atualizada com sucesso para todos!");
+                    // Refresh data to update progress bars
+                    App.refreshData();
+                } catch (e) {
+                    alert("Erro ao salvar no banco de dados.");
+                }
+            }
+        } else if (password !== null) {
+            alert("Senha incorreta!");
+        }
+    }
+};
+
+// Metas CRUD hooks
+window.openMetaModal = (id = null) => {
+    AppState.editingMetaId = id;
+    const modal = document.getElementById('metaModal');
+    const title = document.getElementById('metaModalTitle');
+    
+    if (id) {
+        title.innerText = 'Editar Meta';
+        const meta = AppState.metas.find(m => m.id === id);
+        if (meta) {
+            document.getElementById('metaTitle').value = meta.title || '';
+            document.getElementById('metaDescription').value = meta.description || '';
+            document.getElementById('metaUser').value = meta.user || '';
+            document.getElementById('metaTarget').value = meta.target || '';
+        }
+    } else {
+        title.innerText = 'Adicionar Meta';
+        document.getElementById('metaTitle').value = '';
+        document.getElementById('metaDescription').value = '';
+        document.getElementById('metaUser').value = '';
+        document.getElementById('metaTarget').value = '';
+    }
+    modal.style.display = 'flex';
+};
+
+window.closeMetaModal = () => {
+    document.getElementById('metaModal').style.display = 'none';
+};
+
+window.saveMeta = async () => {
+    console.log('Iniciando saveMeta...');
+    const data = {
+        title: document.getElementById('metaTitle').value,
+        description: document.getElementById('metaDescription').value,
+        user: document.getElementById('metaUser').value,
+        target: parseInt(document.getElementById('metaTarget').value) || 0
+    };
+    console.log('Dados da meta:', data);
+    
+    if (!data.title) {
+        alert('Por favor, insira um título para a meta.');
+        return;
+    }
+
+    try {
+        const btn = document.getElementById('btnSaveMeta');
+        btn.disabled = true;
+        btn.innerText = 'Salvando...';
+
+        if (AppState.editingMetaId) {
+            await MetasService.update(AppState.editingMetaId, data);
+        } else {
+            await MetasService.add(data);
+        }
+        
+        window.closeMetaModal();
+        await App.loadMetas();
+    } catch (error) {
+        console.error('Erro ao salvar meta:', error);
+        alert('Erro ao salvar no Firestore. Verifique o console.');
+    } finally {
+        const btn = document.getElementById('btnSaveMeta');
+        btn.disabled = false;
+        btn.innerText = 'Salvar Meta';
+    }
+};
+
+window.deleteMeta = async (id) => {
+    if (confirm('Deseja realmente excluir esta meta?')) {
+        await MetasService.remove(id);
+        await App.loadMetas();
+    }
+};
+
 window.showView = (id) => UIController.showView(id);
 
 window.generateDailyReport = async () => {
@@ -194,25 +393,5 @@ window.submitTaskProof = async () => {
     }
 };
 
-window.openMetaModal = (day, date, desc, tags) => {
-    document.getElementById('modalDay').textContent = day;
-    document.getElementById('modalDate').textContent = date;
-    document.getElementById('modalDescription').textContent = desc;
-    
-    const container = document.getElementById('modalTags');
-    container.innerHTML = (Array.isArray(tags) ? tags : []).map(tag => {
-        const type = tag.toLowerCase();
-        let cls = '';
-        if (type.includes('obs') || type.includes('importante')) cls = 'obs';
-        else if (type.includes('treinamento')) cls = 'training';
-        else if (type.includes('lembrar')) cls = 'remind';
-        else if (type.includes('entrega')) cls = 'success';
-        return `<span class="tag ${cls}">${tag}</span>`;
-    }).join('');
-
-    document.getElementById('metaModalOverlay').style.display = 'flex';
-};
-
-window.closeMetaModal = () => document.getElementById('metaModalOverlay').style.display = 'none';
 
 document.addEventListener('DOMContentLoaded', () => App.init());

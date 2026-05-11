@@ -1,4 +1,4 @@
-import { db, collection, addDoc, getDocs, query, orderBy, serverTimestamp, deleteDoc, doc } from './firebase-config.js';
+import { db, collection, addDoc, getDocs, query, orderBy, serverTimestamp, deleteDoc, doc, updateDoc } from './firebase-config.js';
 
 export const MetasService = {
     collectionName: 'metas',
@@ -24,5 +24,10 @@ export const MetasService = {
     async remove(id) {
         const metaDoc = doc(db, this.collectionName, id);
         return await deleteDoc(metaDoc);
+    },
+
+    async update(id, data) {
+        const metaDoc = doc(db, this.collectionName, id);
+        return await updateDoc(metaDoc, data);
     }
 };
